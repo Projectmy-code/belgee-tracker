@@ -1,0 +1,295 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Belgee Tracker</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="bg-grid"></div>
+    <div class="bg-blobs">
+        <div class="blob blob-blue"></div>
+        <div class="blob blob-orange"></div>
+        <div class="blob blob-purple"></div>
+    </div>
+
+    <div class="app-container">
+        <header class="header">
+            <div>
+                <h1 id="page-title">Моя машина</h1>
+                <p class="subtitle">Belgee X80 PHEV</p>
+            </div>
+            <button class="add-btn" id="header-add-btn" onclick="openModal()">+</button>
+        </header>
+
+        <!-- ЭКРАН 1: ГЛАВНАЯ -->
+        <div id="view-home" class="view active">
+            
+            <!-- Кнопка быстрой зарядки -->
+            <button class="quick-btn glass" onclick="openQuickCharge()">
+                <span style="font-size: 20px;">🏠</span> Быстрая зарядка дома
+            </button>
+
+            <main class="grid">
+                <!-- Батарея -->
+                <div class="card card-battery glass" style="position: relative;">
+                    <div class="card-header"><span class="icon-blue pulse">⚡</span><span>Батарея</span></div>
+                    <button class="edit-status-btn" onclick="openDailyModal('battery')">✏️</button>
+                    <div class="value-large"><span id="battery-val" class="counter" data-target="74">0</span><span class="unit">%</span></div>
+                    <div class="subtext" id="battery-subtext">12,6 из 17 кВт·ч · Утро</div>
+                </div>
+                <!-- Бак -->
+                <div class="card card-tank glass" style="position: relative;">
+                    <div class="card-header"><span class="icon-orange pulse">⛽</span><span>Бак</span></div>
+                    <button class="edit-status-btn" onclick="openDailyModal('tank')">✏️</button>
+                    <div class="value-large"><span id="tank-val" class="counter" data-target="33">0</span><span class="unit">%</span></div>
+                    <div class="progress-bar"><div class="progress" id="tank-progress" style="width: 0%;"></div></div>
+                    <div class="subtext" id="tank-subtext">15,2 л (всего 19,2 л) · Утро</div>
+                </div>
+
+                <!-- Статистика: Потрачено -->
+                <div class="card glass">
+                    <div class="card-header" style="justify-content: space-between; margin-bottom: 5px;">
+                        <span>Потрачено</span>
+                        <div class="mini-toggle">
+                            <button id="btn-period-all" class="active" onclick="setPeriod('all')">Всё</button>
+                            <button id="btn-period-month" onclick="setPeriod('month')">Мес</button>
+                        </div>
+                    </div>
+                    <div class="value-large"><span id="total-spent" class="counter" data-target="0">0</span><span class="unit"> Br</span></div>
+                    <div class="subtext" id="period-label">за всё время</div>
+                </div>
+
+                <!-- Статистика: Средний расход -->
+                <div class="card glass">
+                    <div class="card-header">Расход топлива</div>
+                    <div class="value-large"><span id="avg-consumption" class="counter" data-target="0">0</span><span class="unit"> л/100км</span></div>
+                    <div class="subtext">средний по чекам</div>
+                </div>
+
+                <!-- Графики -->
+                <div class="card card-wide glass">
+                    <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 20px;">
+                        <div style="height: 250px; position: relative;">
+                            <div class="card-header" style="margin-bottom: 10px;">Расходы по дням</div>
+                            <canvas id="costChart"></canvas>
+                        </div>
+                        <div style="height: 250px; position: relative;">
+                            <div class="card-header" style="margin-bottom: 10px;">Бензин vs Электро</div>
+                            <canvas id="ratioChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Последние операции -->
+                <div class="card card-wide glass">
+                    <div class="card-header" style="justify-content: space-between;">
+                        <span>Последние операции</span>
+                        <span style="font-size: 12px; color: var(--blue); cursor: pointer;" onclick="switchView('journal')">Все ></span>
+                    </div>
+                    <div id="recent-list" class="recent-list">
+                        <div class="empty-state">Пока нет записей.</div>
+                    </div>
+                </div>
+            </main>
+        </div>
+
+        <!-- ЭКРАН 2: ЖУРНАЛ -->
+        <div id="view-journal" class="view">
+            <div id="journal-list" class="recent-list"></div>
+        </div>
+
+        <!-- ЭКРАН 3: НАСТРОЙКИ -->
+        <div id="view-settings" class="view">
+            <div class="card glass" style="margin-bottom: 20px;">
+                <h2>Мои тарифы и цены</h2>
+                <p class="subtext" style="margin-bottom: 15px;">Сохраните цены, чтобы не вводить их каждый раз вручную.</p>
+                
+                <div class="segmented-control" style="margin-bottom: 20px;">
+                    <button type="button" class="segment-btn active" id="btn-settings-electric" onclick="switchSettingsTab('electric')">⚡ Электро</button>
+                    <button type="button" class="segment-btn" id="btn-settings-fuel" onclick="switchSettingsTab('fuel')">⛽ Бензин</button>
+                </div>
+
+                <form id="tariff-form-electric" onsubmit="saveTariff(event, 'electric')" style="margin-bottom: 20px;">
+                    <div class="form-group">
+                        <label>Сеть зарядок</label>
+                        <div class="custom-select-wrapper">
+                            <select id="electric-network" required>
+                                <option value="" disabled selected>-- Выберите сеть --</option>
+                                <option value="Malanka">Malanka</option>
+                                <option value="ZARYADKA">ZARYADKA</option>
+                                <option value="forEVo">forEVo</option>
+                                <option value="Evika!">Evika!</option>
+                                <option value="BatteryFly">BatteryFly</option>
+                                <option value="Charge&GO">Charge&GO</option>
+                                <option value="Домашняя (Розетка)">Домашняя (Розетка)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Тип зарядки</label>
+                        <div class="custom-select-wrapper">
+                            <select id="electric-charge-type" required>
+                                <option value="AC">🐢 Медленная (AC)</option>
+                                <option value="DC">⚡ Быстрая (DC)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group" style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <div style="flex: 1; min-width: 120px;">
+                            <label>Название тарифа</label>
+                            <input type="text" id="electric-name" required placeholder="Ночной">
+                        </div>
+                        <div style="flex: 1; min-width: 100px;">
+                            <label>Цена (Br/кВт·ч)</label>
+                            <input type="number" id="electric-price" step="0.01" required placeholder="2.50">
+                        </div>
+                    </div>
+                    <div class="form-group" style="display: flex; gap: 10px; margin-bottom: 15px;">
+                        <div style="flex: 1;"><label>Начало</label><input type="time" id="electric-start" required value="23:00"></div>
+                        <div style="flex: 1;"><label>Конец</label><input type="time" id="electric-end" required value="07:00"></div>
+                    </div>
+                    <button type="submit" class="btn-save" style="width: 100%;">Добавить тариф</button>
+                </form>
+
+                <form id="tariff-form-fuel" onsubmit="saveTariff(event, 'fuel')" style="margin-bottom: 20px; display: none;">
+                    <div class="form-group">
+                        <label>АЗС</label>
+                        <div class="custom-select-wrapper">
+                            <select id="fuel-station" onchange="updateFuelTypes()" required>
+                                <option value="" disabled selected>-- Выберите АЗС --</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Вид топлива</label>
+                        <div class="custom-select-wrapper">
+                            <select id="fuel-type" required>
+                                <option value="" disabled selected>-- Сначала выберите АЗС --</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 15px;">
+                        <label>Цена (Br/литр)</label>
+                        <input type="number" id="fuel-price" step="0.01" required placeholder="2.10">
+                    </div>
+                    <button type="submit" class="btn-save" style="width: 100%;">Добавить цену</button>
+                </form>
+
+                <div id="tariff-list"></div>
+            </div>
+
+            <div class="card glass" style="margin-bottom: 20px;">
+                <h2>Тестирование</h2>
+                <button class="btn-cancel" style="width: 100%; background: #3a3a3c; color: white; padding: 14px; border-radius: 12px; border: none; cursor: pointer; font-weight: bold;" onclick="generateDemoData()">Заполнить демо-данными</button>
+            </div>
+
+            <div class="card glass" style="border: 1px solid rgba(255, 59, 48, 0.3);">
+                <h2 style="color: #ff453a;">Опасная зона</h2>
+                <button class="btn-delete" style="width: 100%; padding: 14px; font-size: 16px; background: rgba(255, 59, 48, 0.2); border-radius: 12px; border: none; font-weight: bold; cursor: pointer;" onclick="clearAllData()">Полный сброс данных</button>
+            </div>
+        </div>
+    </div>
+
+    <nav class="bottom-nav glass">
+        <div class="nav-item active" id="nav-home" onclick="switchView('home')"><span>🏠</span><span>Главная</span></div>
+        <div class="nav-item" id="nav-journal" onclick="switchView('journal')"><span>📋</span><span>Журнал</span></div>
+        <div class="nav-item" id="nav-settings" onclick="switchView('settings')"><span>⚙️</span><span>Настройки</span></div>
+    </nav>
+
+    <!-- МОДАЛЬНОЕ ОКНО: НОВАЯ ЗАПИСЬ -->
+    <div class="modal-overlay" id="modal">
+        <div class="modal-content">
+            <h2>Новая запись</h2>
+            <form id="record-form" onsubmit="saveRecord(event)">
+                <div class="form-group">
+                    <label>Тип записи</label>
+                    <div class="segmented-control" id="type-selector">
+                        <button type="button" class="segment-btn active" data-type="fuel" onclick="setType('fuel')">⛽ Бензин</button>
+                        <button type="button" class="segment-btn" data-type="electric" onclick="setType('electric')">⚡ Электро</button>
+                    </div>
+                </div>
+                
+                <div class="form-group" id="network-select-group">
+                    <label id="network-label">АЗС и топливо</label>
+                    <div class="custom-select-wrapper">
+                        <select id="network-select" onchange="filterTariffsByNetwork()"><option value="">-- Выберите --</option></select>
+                    </div>
+                </div>
+
+                <div class="form-group" id="tariff-select-group" style="display: none;">
+                    <label>Тариф</label>
+                    <div class="custom-select-wrapper">
+                        <select id="tariff-select" onchange="applyTariff()"><option value="">-- Сначала выберите сеть --</option></select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>🛣️ Пробег (Одометр, км) <span style="font-size:10px;color:var(--text-muted)">(для расхода)</span></label>
+                    <input type="number" id="odometer" placeholder="Например, 15000">
+                </div>
+                <div class="form-group">
+                    <label>🔋 Заряд батареи (%)</label>
+                    <input type="number" id="battery-level" placeholder="Например, 45" min="0" max="100">
+                </div>
+                <div class="form-group">
+                    <label>🔢 Количество (<span id="unit-label">литры</span>)</label>
+                    <input type="number" id="amount" step="0.01" required placeholder="0">
+                </div>
+                <div class="form-group">
+                    <label>💰 Цена за <span id="price-label">литр</span></label>
+                    <div style="position: relative;">
+                        <input type="number" id="price" step="0.01" required placeholder="0.00" style="padding-right: 40px;">
+                        <span style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-weight: bold;">Br</span>
+                    </div>
+                </div>
+                
+                <div class="total-display">
+                    <span>Итого к оплате</span>
+                    <span id="total-cost" class="total-value">0.00 Br</span>
+                </div>
+
+                <div class="modal-buttons">
+                    <button type="button" class="btn-cancel" onclick="closeModal()">Отмена</button>
+                    <button type="submit" class="btn-save">Сохранить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- МОДАЛЬНОЕ ОКНО: СТАТУС АВТО -->
+    <div class="modal-overlay" id="daily-modal">
+        <div class="modal-content">
+            <h2>Статус автомобиля</h2>
+            <form id="daily-form" onsubmit="saveDailyStatus(event)">
+                <div class="form-group">
+                    <label>Время замера</label>
+                    <div class="segmented-control" id="daily-time-selector">
+                        <button type="button" class="segment-btn active" data-time="start" onclick="setDailyTime('start')">🌅 Начало дня</button>
+                        <button type="button" class="segment-btn" data-time="end" onclick="setDailyTime('end')">🌇 Конец дня</button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>🔋 Заряд батареи (%)</label>
+                    <input type="number" id="daily-battery" min="0" max="100" placeholder="Например, 74">
+                </div>
+                <div class="form-group">
+                    <label>⛽ Остаток в баке (%)</label>
+                    <input type="number" id="daily-tank-percent" min="0" max="100" placeholder="Например, 45">
+                    <div id="tank-liters-hint" style="font-size: 12px; color: var(--blue); margin-top: 5px; display: none;">≈ 0 литров</div>
+                </div>
+                <div class="modal-buttons">
+                    <button type="button" class="btn-cancel" onclick="closeDailyModal()">Отмена</button>
+                    <button type="submit" class="btn-save">Сохранить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="toast" class="toast">Запись добавлена!</div>
+    <script src="app.js"></script>
+</body>
+</html>
