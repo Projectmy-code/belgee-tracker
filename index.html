@@ -28,7 +28,6 @@
         <!-- ЭКРАН 1: ГЛАВНАЯ -->
         <div id="view-home" class="view active">
             
-            <!-- Кнопка быстрой зарядки -->
             <button class="quick-btn glass" onclick="openQuickCharge()">
                 <span style="font-size: 20px;">🏠</span> Быстрая зарядка дома
             </button>
@@ -189,6 +188,29 @@
                 <div id="tariff-list"></div>
             </div>
 
+            <!-- Интеграция с Умным домом -->
+            <div class="card glass" style="margin-bottom: 20px; border: 1px solid rgba(10, 132, 255, 0.3);">
+                <h2>Умный дом</h2>
+                <p class="subtext" style="margin-bottom: 15px;">Webhook URL для Home Assistant (требуется HTTPS).</p>
+                <div class="form-group">
+                    <label>Webhook URL</label>
+                    <input type="url" id="webhook-url" placeholder="https://..." style="font-size: 14px;">
+                </div>
+                <button type="button" class="btn-save" style="width: 100%; margin-bottom: 10px;" onclick="saveWebhook()">Сохранить URL</button>
+                <button type="button" class="btn-cancel" style="width: 100%;" onclick="testWebhook()">Проверить отправку</button>
+            </div>
+
+            <!-- Экспорт/Импорт -->
+            <div class="card glass" style="margin-bottom: 20px;">
+                <h2>Резервная копия</h2>
+                <p class="subtext" style="margin-bottom: 15px;">Перенесите данные с компьютера на телефон.</p>
+                <button class="btn-save" style="width: 100%; margin-bottom: 10px;" onclick="exportData()">📥 Скачать данные (JSON)</button>
+                <button class="btn-cancel" style="width: 100%; position: relative;">
+                    📤 Загрузить данные
+                    <input type="file" id="import-file" accept=".json" onchange="importData(event)" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer;">
+                </button>
+            </div>
+
             <div class="card glass" style="margin-bottom: 20px;">
                 <h2>Тестирование</h2>
                 <button class="btn-cancel" style="width: 100%; background: #3a3a3c; color: white; padding: 14px; border-radius: 12px; border: none; cursor: pointer; font-weight: bold;" onclick="generateDemoData()">Заполнить демо-данными</button>
@@ -235,7 +257,7 @@
                 </div>
 
                 <div class="form-group">
-                    <label>🛣️ Пробег (Одометр, км) <span style="font-size:10px;color:var(--text-muted)">(для расхода)</span></label>
+                    <label>🛣️ Пробег (Одометр, км)</label>
                     <input type="number" id="odometer" placeholder="Например, 15000">
                 </div>
                 <div class="form-group">
@@ -300,4 +322,3 @@
     <script src="app.js"></script>
 </body>
 </html>
-
