@@ -1,4 +1,4 @@
-﻿let records = JSON.parse(localStorage.getItem('belgee_records')) || [];
+let records = JSON.parse(localStorage.getItem('belgee_records')) || [];
 let tariffs = JSON.parse(localStorage.getItem('belgee_tariffs')) || [];
 let dailyLogs = JSON.parse(localStorage.getItem('belgee_daily_logs')) || [];
 let barChart = null, pieChart = null;
@@ -83,6 +83,29 @@ function updateStats() {
     renderCharts(filtered);
 }
 
+// --- РАСЧЕТ СТОИМОСТИ 1 КМ ---
+function calculateCostPerKm() {
+    // Берем только записи, где указан пробег (чтобы не было деления на 0)
+    const recordsWithOdo = records.filter(r => r.odometer > 0);
+    if (recordsWithOdo.length < 2) return 0;
+
+    // Сортируем по пробегу
+    recordsWithOdo.sort((a, b) => a.odometer - b.odometer);
+    
+    const minOdo = recordsWithOdo[0].odometer;
+    const maxOdo = recordsWithOdo[recordsWithOdo.length - 1].odometer;
+    const totalDist = maxOdo - minOdo;
+    
+    if (totalDist <= 0) return 0;
+
+    // Считаем общие траты за этот период (суммируем все записи между min и max пробегом)
+    let totalCost = 0;
+    recordsWithOdo.forEach(r => {
+        totalCost += r.total;
+    });
+
+    return totalCost / totalDist;
+}
 function calculateConsumption() {
     const fuelRecords = records.filter(r => r.type === 'fuel' && r.odometer > 0).sort((a,b) => a.odometer - b.odometer);
     if (fuelRecords.length < 2) return 0;
@@ -99,6 +122,20 @@ function updateDashboardCards() {
     // 1. Расход топлива
     const consumption = calculateConsumption();
     animateValue(document.getElementById('avg-consumption'), 0, consumption, 800);
+
+    // 2. Стоимость 1 км
+    const costPerKm = calculateCostPerKm();
+    animateValue(document.getElementById('cost-per-km'), 0, costPerKm, 800);
+    
+    // Подпись (сколько км учтено)
+    const recordsWithOdo = records.filter(r => r.odometer > 0);
+    if(recordsWithOdo.length >= 2) {
+        recordsWithOdo.sort((a, b) => a.odometer - b.odometer);
+        const dist = recordsWithOdo[recordsWithOdo.length - 1].odometer - recordsWithOdo[0].odometer;
+        document.getElementById('cost-per-km-sub').innerText = `учтено ${dist} км пробега`;
+    } else {
+        document.getElementById('cost-per-km-sub').innerText = `нужно минимум 2 записи с пробегом`;
+    }
     
     // 2. Статистика трат (учитывая период)
     updateStats();
@@ -553,3 +590,4 @@ document.addEventListener('DOMContentLoaded', () => {
     updateDashboardCards(); 
     renderTariffs();
 });
+
