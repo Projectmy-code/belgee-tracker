@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
@@ -68,6 +68,13 @@
                     <div class="card-header">Расход топлива</div>
                     <div class="value-large"><span id="avg-consumption" class="counter" data-target="0">0</span><span class="unit"> л/100км</span></div>
                     <div class="subtext">средний по чекам</div>
+                </div>
+
+                <!-- Статистика: Стоимость 1 км -->
+                <div class="card glass">
+                    <div class="card-header">Стоимость 1 км</div>
+                    <div class="value-large"><span id="cost-per-km" class="counter" data-target="0">0</span><span class="unit"> Br/км</span></div>
+                    <div class="subtext" id="cost-per-km-sub">общие траты / пробег</div>
                 </div>
 
                 <!-- Графики -->
@@ -293,3 +300,4 @@
     <script src="app.js"></script>
 </body>
 </html>
+
